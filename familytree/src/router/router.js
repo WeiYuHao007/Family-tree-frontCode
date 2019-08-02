@@ -43,7 +43,7 @@ const Routers = [
     component: TreeEmpty
   },
   {
-    path: '/tree/:genealogy',
+    path: '/tree/:treeName',
     meta: {
       title: '家谱-家谱系统(FTS)'
     },

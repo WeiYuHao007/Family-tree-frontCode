@@ -45,7 +45,7 @@ export default {
             this.$router.push({path: '/homepage/' + successResponse.data.data.nickName})
             this.$alert(successResponse.data.message)
           }
-          if (successResponse.data.code === 400) {
+          if (successResponse.data.code !== 200) {
             this.$alert(successResponse.data.message)
           }
         })
