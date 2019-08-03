@@ -4,17 +4,29 @@
     <div class="cssTreeChoosePanel">
       <template>
         <el-table
-        :data="treeListVO"
-        style="width:360px">
+          :data="treeListVO"
+          style="width:540px">
         <el-table-column
-        prop="index"
-        label="#"
-        width="180">
+          prop="index"
+          label="#"
+          width="180">
         </el-table-column>
         <el-table-column
-        prop="treeName"
-        label="族谱名称"
-        width="180">
+          prop="treeName"
+          label="族谱名称"
+          width="180">
+        </el-table-column>
+        <el-table-column
+          label="操作"
+          width="180"
+          align="right">
+          <template slot-scope="scope">
+            <el-button
+              size="mini"
+              @click="enterTree(scope.row.treeName)">
+              进入
+            </el-button>
+          </template>
         </el-table-column>
         </el-table>
       </template>
@@ -37,7 +49,6 @@ export default {
     var _this = this
     this.bus.$on('on-logout', function () {
       _this.$router.push({path: '/login'})
-      console.log('跳转成功')
     })
   },
   methods: {
@@ -58,13 +69,16 @@ export default {
         .catch(function (error) {
           console.log(error)
         })
+    },
+    enterTree (treeName) {
+      this.$router.push({path: '/tree/' + treeName})
     }
   }
 }
 </script>
 <style scoped>
 .cssHomepageBox{
-  width: 400px;
+  width: 600px;
   box-shadow: rgba(0, 0, 0, 0.04) 0px 4px
     20px;
   border-radius: 3px;

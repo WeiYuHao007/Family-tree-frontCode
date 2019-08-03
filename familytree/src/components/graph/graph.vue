@@ -26,7 +26,8 @@ export default{
         nodes: [],
         links: []
       },
-      radius: 50000,
+      // 图谱初始半径
+      radius: 1000,
       maxIterationNum: 2,
       // 迭代使用的参数,存储中心节点位于图节点数据钟的位置
       centerNodes: [],
@@ -61,28 +62,50 @@ export default{
           // 图的布局
           layout: 'none',
           // 调节节点的大小
-          symbolSize: 50,
+          symbolSize: 25,
           // 是否开启鼠标缩放和平移漫游。默认不启动。如果想要开启缩放或者平移，
           // 可以设置成'scale'或者'move'，设置成true为都开启
           roam: true,
-          nodeScaleRatio: 0.6,
+          // 鼠标漫游缩放时节点的相应缩放比例，当设为0时节点不随着鼠标的缩放而缩放
+          nodeScaleRatio: 0.4,
+          // 是否在鼠标移到节点上的时候突出显示节点以及节点的边和邻接节点。
           focusNodeAdjacency: true,
           itemStyle: {
-            color: '#1C86EE'
+            color: '#1C86EE',
+            opacity: 0.9
+          },
+          lineStyle: {
+            curveness: 0.3
           },
           label: {
-            show: true
+            show: false,
+            fontSize: 15,
+            // 文字水平对齐方式，默认自动。
+            align: 'center'
           },
           /* 边两端的标记类型，可以是一个数组分别指定两端，也可以是单个统一指定。
-          默认不显示标记，常见的可以设置为箭头，如下： */
+            默认不显示标记，常见的可以设置为箭头，如下： */
           edgeSymbol: ['circle', 'arrow'],
           edgeSymbolSize: [4, 10],
           edgeLabel: {
             normal: {
-              show: true,
+              show: false,
+              formatter: '',
+              align: 'center',
               textStyle: {
-                fontSize: 20
+                fontSize: 15
               }
+            }
+          },
+          emphasis: {
+            label: {
+              show: true,
+              align: 'center'
+            },
+            edgeLabel: {
+              show: true,
+              fontWeight: 'bold',
+              align: 'center'
             }
           },
           data: this.nodes,
@@ -92,10 +115,9 @@ export default{
       this.myChart.setOption(option)
     },
     showMainTree () {
-      // 获取该账户绑定在该族谱下的节点并渲染，如果没有的话就使用默认的节点
-      // 先暂时写死
+      // 获取指定向下渲染的节点并渲染，如果没有的话就使用默认的节点
       var nowCenterNode = {
-        name: '孙权',
+        name: '孙钟',
         x: 0,
         y: 0
       }
@@ -123,7 +145,7 @@ export default{
         centerNodes.shift()
       }
       // 将半径更新
-      this.radius *= 1 / 5
+      this.radius *= 2
     },
     showSons (node, radius) {
       // 在原渲染基础上，加载指定节点的儿子节点并渲染
