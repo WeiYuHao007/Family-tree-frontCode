@@ -11,5 +11,6 @@ export default {
 .cssFooter{
   width: 100%;
   text-align: center;
+  overflow-x: hidden;
 }
 </style>

@@ -1,26 +1,83 @@
 <template>
-<div class="cssTreePanelPage">
-  <el-form class="cssTreeUtil" :inline="true" :model="queryShortestpathVO">
-    <el-form-item label="最短路径选择器：">
-      <el-input v-model="queryShortestpathVO.startPersonName" placeholder="请输入第一个人的姓名" max="5"></el-input>
-    </el-form-item>
-    <el-form-item>
-      <el-input v-model="queryShortestpathVO.endPersonName" placeholder="请输入第二个人的性命" max="5"></el-input></el-form-item>
-    <el-form-item>
-      <el-button @click.native="findShortestpath" type="primary" round>查询</el-button>
-    </el-form-item>
-  </el-form>
-  <el-button @click="showCenterNode()" type="primary">加载</el-button>
-  <div id="treeBox" class="cssTreeShowPanel"></div>
+<div class="cssTree">
+  <div class="cssTreePanelContainer">
+    <div class="cssTreeUtilNavDetail">
+      <el-menu :collapse='true' @select="handleSelect" style="border-right: 0px;">
+        <el-menu-item index="1">
+          <i class="el-icon-refresh" @click="showCenterNode()"></i>
+        </el-menu-item>
+        <el-submenu index="2">
+          <template slot="title">
+            <i class="el-icon-plus"></i>
+          </template>
+          <el-menu-item-group>
+            <el-menu-item index="2-1">节点</el-menu-item>
+          </el-menu-item-group>
+          <el-menu-item-group>
+            <el-menu-item index="2-2">关系</el-menu-item>
+          </el-menu-item-group>
+        </el-submenu>
+        <el-submenu index="3">
+          <template slot="title">
+            <i class="el-icon-minus"></i>
+          </template>
+          <el-menu-item-group>
+            <el-menu-item index="3-1">节点</el-menu-item>
+          </el-menu-item-group>
+          <el-menu-item-group>
+            <el-menu-item index="3-2">关系</el-menu-item>
+          </el-menu-item-group>
+        </el-submenu>
+        <el-menu-item index="4">
+          <i class="el-icon-chat-dot-round"></i>
+        </el-menu-item>
+        <el-submenu index="5">
+          <template slot="title">
+            <i class="el-icon-menu"></i>
+          </template>
+          <el-menu-item-group>
+            <span slot="title">工具</span>
+            <el-menu-item index="5-1">最短路径选择器</el-menu-item>
+          </el-menu-item-group>
+        </el-submenu>
+        <el-menu-item index="6">
+          <i class="el-icon-setting"></i>
+        </el-menu-item>
+      </el-menu>
+
+    </div>
+    <div class="cssTreeShowDetail">
+      <div id="treeShow" class="cssTreeShowPanel"></div>
+    </div>
+    <div class="cssTreeUtilDetail">
+      <el-card class="cssTreeUtilShow">
+        <graph-util :myChart="this.myChart" :utilIndex="this.selectUtilIndex"></graph-util>
+      </el-card>
+    </div>
+  </div>
 </div>
 </template>
 <script>
+import graphUtil from '@/components/graph/graphUtil/graphUtil.vue'
+
 export default{
   name: 'TreeGraph',
+  components: {
+    graphUtil
+  },
   data () {
     return {
+      isCollapse: true,
+      selectUtilIndex: null,
       // 画板对象
       myChart: null,
+      // 画板设置控制
+      label: {
+        show: false
+      },
+      edgeLabel: {
+        show: false
+      },
       // 图数据
       graphData: {
         nodes: [],
@@ -44,7 +101,7 @@ export default{
   },
   methods: {
     drawGraph () {
-      this.myChart = this.$echarts.init(document.getElementById('treeBox'))
+      this.myChart = this.$echarts.init(document.getElementById('treeShow'))
       // 画板配置
       var option = {
         title: {
@@ -78,7 +135,7 @@ export default{
             curveness: 0.3
           },
           label: {
-            show: false,
+            show: this.label.show,
             fontSize: 15,
             // 文字水平对齐方式，默认自动。
             align: 'center'
@@ -89,7 +146,7 @@ export default{
           edgeSymbolSize: [4, 10],
           edgeLabel: {
             normal: {
-              show: false,
+              show: this.edgeLabel.show,
               formatter: '',
               align: 'center',
               textStyle: {
@@ -138,7 +195,7 @@ export default{
       let radius = this.radius
       for (let i = 0; i < length; i++) {
         this.showSons(centerNodes[i], radius)
-        this.showWifesAndDaughters(centerNodes[i], radius)
+        this.showWivesAndDaughters(centerNodes[i], radius)
       }
       // 删除上一代中心节点数组,并更新半径
       for (let j = 0; j < length; j++) {
@@ -150,10 +207,13 @@ export default{
     showSons (node, radius) {
       // 在原渲染基础上，加载指定节点的儿子节点并渲染
       this.$axios
-        .post('/tree/' + this.$route.params.treeName + '/' + node.name + '/sons/' + radius + '/', {
-          name: node.name,
-          x: node.x,
-          y: node.y
+        .get('/tree/' + this.$route.params.treeName + '/node/' + node.name + '/sons/', {
+          params: {
+            name: node.name,
+            x: node.x,
+            y: node.y,
+            radius: radius
+          }
         })
         .then(response => {
           var beforeLength = this.graphData.nodes.length
@@ -175,13 +235,16 @@ export default{
         })
         .catch(response => {})
     },
-    showWifesAndDaughters (node, radius) {
+    showWivesAndDaughters (node, radius) {
       // 在原渲染基础上，加载指定节点的妻子和女儿节点并渲染
       this.$axios
-        .post('/tree/' + this.$route.params.treeName + '/' + node.name + '/wifesAndDaughters/' + radius + '/', {
-          name: node.name,
-          x: node.x,
-          y: node.y
+        .get('/tree/' + this.$route.params.treeName + '/node/' + node.name + '/wives-and-daughters/', {
+          params: {
+            name: node.name,
+            x: node.x,
+            y: node.y,
+            radius: radius
+          }
         })
         .then(response => {
           // 使用this.nodes与this.links的原因是在原来的基础上继续渲染
@@ -193,38 +256,6 @@ export default{
                 links: this.loadLink(response, this.graphData.links)
               }]
             })
-          }
-        })
-        .catch(response => {})
-    },
-    findShortestpath () {
-      console.log(this.centerNodes[0])
-      console.log(this.graphData.nodes[1])
-      // 最短关系请求
-      this.$axios
-        .get('/tree/' + this.$route.params.treeName + '/shortestpath/', {
-          params: {
-            startPersonName: this.queryShortestpathVO.startPersonName,
-            endPersonName: this.queryShortestpathVO.endPersonName,
-            radius: 10000
-          }
-        })
-        .then(response => {
-          if (response.data.code === 200) {
-            this.myChart.hideLoading()
-            var nodes = []
-            var links = []
-            nodes = this.loadNode(response, nodes)
-            links = this.loadLink(response, links)
-            this.myChart.setOption({
-              series: [{
-                data: nodes,
-                links: links
-              }]
-            })
-          }
-          if (response.data.code !== 200) {
-            this.$alert(response.data.message)
           }
         })
         .catch(response => {})
@@ -261,27 +292,50 @@ export default{
         })
       }
       return links
+    },
+    handleSelect (index) {
+      this.selectUtilIndex = index
     }
   }
 }
 </script>
 <style scoped>
-.cssTreePanelPage{
-  width: 1000px;
-  margin: 50px auto;
+.cssTree{
+  width: 100%;
+  margin: 0;
 }
-.cssTreeUtil{
-  margin-left: 150px;
+.cssTreePanelContainer {
+  display: flex;
+  flex-flow: row nowrap;
+  /* 用来定义伸缩项目沿主轴线的对齐方式。*/
+  justify-content: flex-start;
+  align-items: flex-start;
+  width: 1140px;
+  margin: 0 auto;
+  margin-top: 60px;
+}
+.cssTreeUtilNavDetail {
+  margin-top: 50px;
+  margin-left: 10px;
+  width: 64px;
 }
 .cssTreeShowPanel{
   height: 500px;
   width: 800px;
   padding: 0px;
-  margin: 0px auto;
+  margin: 50px auto 0 auto;
   box-shadow: rgba(0, 0, 0, 0.04) 0px 4px 20px;
   border-radius: 15px;
   border-width: 1px;
   border-style: solid;
   border-color: rgb(238, 238, 238);
+}
+.cssTreeUtilDetail {
+  margin: 50px 10px 0px 10px;
+  width: 246px;
+  height: 100%;
+}
+.cssTreeUtilShow {
+  height: 500px;
 }
 </style>

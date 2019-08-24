@@ -1,7 +1,8 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import TreeLogin from '@/components/login/TreeLogin.vue'
-import TreeHomepage from '@/components/home/TreeHomepage.vue'
+import TreeLogin from '@/components/user/TreeLogin.vue'
+import TreeRegister from '@/components/user/TreeRegister.vue'
+import TreeHomepage from '@/components/user/TreeHomepage.vue'
 import TreeEmpty from '@/components/error/TreeEmpty.vue'
 import TreeGraph from '@/components/graph/graph.vue'
 
@@ -27,7 +28,15 @@ const Routers = [
     component: TreeLogin
   },
   {
-    path: '/homepage/:nickName',
+    path: '/register',
+    meta: {
+      title: '注册-家谱系统(FTS)'
+    },
+    name: 'TreeRegister',
+    component: TreeRegister
+  },
+  {
+    path: '/homepage/:nickname',
     meta: {
       title: '个人首页-家谱系统(FTS)'
     },

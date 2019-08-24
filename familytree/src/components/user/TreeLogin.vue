@@ -2,16 +2,21 @@
 <div class="cssLoginBox">
   <div class="cssLoginPanel">
     <img ale="FamilyTreeSystem" src="@/assets/FTSlogo.png" style="height: 50px; margin:auto 35% 31px;">
-    <el-form ref="accountVO" :model="accountVO" label-position="left">
+    <el-form ref="userVO" :model="userVO" label-position="left">
       <el-form-item>
-        <el-input type="text" v-model="accountVO.telephoneNumber" placeholder="请输入电话号码" clearable></el-input>
+        <el-input type="text" v-model="userVO.phoneNum" placeholder="电话号码" clearable></el-input>
       </el-form-item>
       <el-form-item>
-        <el-input type="password" v-model="accountVO.password" placeholder="请输入密码" show-password></el-input>
+        <el-input type="password" v-model="userVO.password" placeholder="密码" show-password></el-input>
       </el-form-item>
     </el-form>
-    <el-button @click.native="login" type="primary" round :loading="this.buttonStatus.login">登录</el-button>
-    <el-button @click.native="register" type="primary" round :loading="this.buttonStatus.register">注册</el-button>
+    <div style="margin: 0px auto; margin-bottom: 22px;">
+      <el-button @click.native="login" type="primary" plain :loading="this.buttonStatus.login" style="width: 340px;">登录</el-button>
+    </div>
+    <div style="display: flex; flex-flow: row nowrap; justify-content: space-between; align-items: center;">
+      <a @click="changePassword" style="cursor: pointer">忘记密码？</a>
+      <a @click="register" style="cursor: pointer">注册</a>
+    </div>
   </div>
 </div>
 </template>
@@ -21,8 +26,8 @@ export default {
   name: 'TreeLogin',
   data () {
     return {
-      accountVO: {
-        telephoneNumber: '',
+      userVO: {
+        phoneNum: '',
         password: ''
       },
       buttonStatus: {
@@ -35,14 +40,14 @@ export default {
     login () {
       this.loginButtonStatus = true
       this.$axios
-        .post('/account/signIn/', {
-          telephoneNumber: this.accountVO.telephoneNumber,
-          password: this.accountVO.password
+        .post('/user/status/', {
+          phoneNum: this.userVO.phoneNum,
+          password: this.userVO.password
         })
         .then(successResponse => {
           if (successResponse.data.code === 200) {
-            this.bus.$emit('on-login', successResponse.data.data.nickName)
-            this.$router.push({path: '/homepage/' + successResponse.data.data.nickName})
+            this.bus.$emit('on-login', successResponse.data.data)
+            this.$router.push({path: '/homepage/' + successResponse.data.data})
             this.$alert(successResponse.data.message)
           }
           if (successResponse.data.code !== 200) {
@@ -50,13 +55,12 @@ export default {
           }
         })
         .catch(failResponse => {})
-    }
-  },
-  mounted () {
-    var _this = this
-    this.bus.$on('on-turnToHomepage', function (accountNickname) {
-      _this.$router.push({path: '/homepage/' + accountNickname})
-    })
+    },
+    register () {
+      this.loginButtonStatus = true
+      this.$router.push({path: '/register'})
+    },
+    changePassword () {}
   }
 }
 </script>
