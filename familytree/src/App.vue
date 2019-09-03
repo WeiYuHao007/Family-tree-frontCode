@@ -3,7 +3,7 @@
   <el-header>
     <tree-header></tree-header>
   </el-header>
-  <el-main>
+  <el-main style="overflow-x: hidden;">
     <router-view/>
   </el-main>
   <el-footer>

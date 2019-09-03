@@ -20,12 +20,12 @@
       <!-- 图谱信息显示区域 -->
       <div class="cssTreeDetail">
         <!-- 图谱主要显示区域 -->
-        <div class="cssTreeMainContainer">
+        <div class="cssTreeNavContainer">
           <el-tabs v-model="this.treeActiveTab">
             <el-tab-pane label="关注" name="1">
               <template>
                 <div class="cssTreePanel">
-                  <el-card class="cssTreePanelItem" v-for="(treeName, index) in this.treeList" :key="index" shadow="hover">
+                  <el-card class="cssTreePanelItem" v-for="(treeName, index) in this.focusedTreeNameList" :key="index" shadow="hover">
                     <div class="cssTreePanelItemContent">
                       <span> {{ treeName }} </span>
                       <span>
@@ -35,29 +35,38 @@
                     </div>
                   </el-card>
                 </div>
+                <el-divider></el-divider>
+                <!-- 图谱事件时间戳 -->
+                <div class="cssTreeEventsPanel">
+                  <el-timeline class="cssTreeEvents">
+                    <el-timeline-item v-for="event in this.treeEvents" :key="event"
+                      :timestamp="event.timestamp" placement="top">
+                      <el-card>
+                        <h4>{{ event.commit }}</h4>
+                        <p>{{ event.note }}</p>
+                      </el-card>
+                    </el-timeline-item>
+                  </el-timeline>
+                </div>
               </template>
             </el-tab-pane>
-            <el-tab-pane label="管理" name="2"></el-tab-pane>
-            <el-tab-pane label="设置" name="3"></el-tab-pane>
+            <el-tab-pane label="搜索" name="2">
+              <template>
+                <el-input v-model="searchedTreeName" @keyup.enter.native="searchTree()" placeholder="请输入查询图谱的名称"></el-input>
+                <el-divider></el-divider>
+                <div>
+                  <div class="cssTreePanel">
+                  </div>
+                </div>
+              </template>
+            </el-tab-pane>
           </el-tabs>
-        </div>
-        <!-- 图谱事件时间戳 -->
-        <div class="cssTreeEventsContainer">
-          <el-timeline class="cssTreeEvents">
-            <el-timeline-item v-for="event in this.treeEvents" :key="event"
-              :timestamp="event.timestamp" placement="top">
-              <el-card>
-                <h4>{{ event.commit }}</h4>
-                <p>{{ event.note }}</p>
-              </el-card>
-            </el-timeline-item>
-          </el-timeline>
         </div>
       </div>
       <!-- 好友面板 -->
       <div class="cssFriendDetail">
         谱友
-        <p v-for="treeName in this.treeList" :key="treeName">
+        <p v-for="treeName in this.focusedTreeNameList" :key="treeName">
           <i class="el-icon-caret-right">{{treeName}}</i>
         </p>
       </div>
@@ -78,8 +87,8 @@ export default {
       },
       treeActiveTab: '1',
       // 用户关注的所有图谱的列表
-      treeList: [],
-      // 用来存储族谱的事件
+      focusedTreeNameList: [],
+      // 用来存储图谱的事件
       treeEvents: [
         {
           timestamp: '2018/8/12 20:46',
@@ -101,7 +110,9 @@ export default {
           commit: '删除了一个节点',
           note: '三国东吴孙氏族谱 管理员：Aaron 提交于 2018/8/3 20:46'
         }
-      ]
+      ],
+      searchedTreeName: '',
+      searchedTreeNameList: []
     }
   },
   mounted () {
@@ -115,12 +126,15 @@ export default {
         .get('/trees')
         .then(successResponse => {
           if (successResponse.data.code === 200) {
-            this.treeList = successResponse.data.data
+            this.focusedTreeNameList = successResponse.data.data
           }
         })
         .catch(function (error) {
           console.log(error)
         })
+    },
+    searchTree () {
+      console.log('请求')
     },
     getUserShow () {
       this.$axios
@@ -148,7 +162,6 @@ export default {
 .cssHomepage {
   height: 100%;
   width: 100%;
-  overflow-x: hidden;
 }
 .cssUserContainer {
   display: flex;
@@ -173,9 +186,6 @@ export default {
   margin-left: 50px;
   margin-right: 50px;
 }
-.cssTreeMainContainer {
-  margin-bottom: 50px;
-}
 .cssTreePanel {
   display: flex;
   flex-flow: column nowrap;
@@ -199,6 +209,13 @@ export default {
 .cssTreeEvents {
   margin: 0px;
   padding: 5px;
+}
+.cssTreeQueryHeaderPanel {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 .cssFriendDetail {
   border: 1px;

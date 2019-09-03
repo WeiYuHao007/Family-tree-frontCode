@@ -4,22 +4,14 @@
     <div class="cssTreeUtilNavDetail">
       <el-menu :collapse='true' @select="handleSelect" style="border-right: 0px;">
         <el-menu-item index="1">
-          <i class="el-icon-refresh" @click="showCenterNode()"></i>
+          <i class="el-icon-refresh" @click="expandTree()"></i>
         </el-menu-item>
-        <el-submenu index="2">
-          <template slot="title">
-            <i class="el-icon-plus"></i>
-          </template>
-          <el-menu-item-group>
-            <el-menu-item index="2-1">节点</el-menu-item>
-          </el-menu-item-group>
-          <el-menu-item-group>
-            <el-menu-item index="2-2">关系</el-menu-item>
-          </el-menu-item-group>
-        </el-submenu>
+        <el-menu-item index="2">
+          <i class="el-icon-view" @click="changeLabel()"></i>
+        </el-menu-item>
         <el-submenu index="3">
           <template slot="title">
-            <i class="el-icon-minus"></i>
+            <i class="el-icon-plus"></i>
           </template>
           <el-menu-item-group>
             <el-menu-item index="3-1">节点</el-menu-item>
@@ -28,30 +20,47 @@
             <el-menu-item index="3-2">关系</el-menu-item>
           </el-menu-item-group>
         </el-submenu>
-        <el-menu-item index="4">
+        <el-submenu index="4">
+          <template slot="title">
+            <i class="el-icon-minus"></i>
+          </template>
+          <el-menu-item-group>
+            <el-menu-item index="4-1">节点</el-menu-item>
+          </el-menu-item-group>
+          <el-menu-item-group>
+            <el-menu-item index="4-2">关系</el-menu-item>
+          </el-menu-item-group>
+        </el-submenu>
+        <el-menu-item index="5">
           <i class="el-icon-chat-dot-round"></i>
         </el-menu-item>
-        <el-submenu index="5">
+        <el-menu-item index="6">
+          <i class="el-icon-search"></i>
+        </el-menu-item>
+        <el-submenu index="7">
           <template slot="title">
             <i class="el-icon-menu"></i>
           </template>
           <el-menu-item-group>
             <span slot="title">工具</span>
-            <el-menu-item index="5-1">最短路径选择器</el-menu-item>
+            <el-menu-item index="7-1">最短路径选择器</el-menu-item>
           </el-menu-item-group>
         </el-submenu>
-        <el-menu-item index="6">
+        <el-menu-item index="8">
           <i class="el-icon-setting"></i>
         </el-menu-item>
       </el-menu>
 
     </div>
     <div class="cssTreeShowDetail">
-      <div id="treeShow" class="cssTreeShowPanel"></div>
+      <el-card id="treeShow" class="cssTreeShowPanel"></el-card>
     </div>
     <div class="cssTreeUtilDetail">
-      <el-card class="cssTreeUtilShow">
-        <graph-util :myChart="this.myChart" :utilIndex="this.selectUtilIndex"></graph-util>
+      <el-card class="cssTreeUtilShowPanel">
+        <graph-util
+          :myChart="this.myChart"
+          :utilIndex="this.selectUtilIndex"
+          @handleGetTreeMainData="getTreeMainData"></graph-util>
       </el-card>
     </div>
   </div>
@@ -67,25 +76,27 @@ export default{
   },
   data () {
     return {
-      isCollapse: true,
+      // 选择的工具index
       selectUtilIndex: null,
       // 画板对象
       myChart: null,
       // 画板设置控制
       label: {
-        show: false
+        nodeLabel: {
+          show: true
+        },
+        edgeLabel: {
+          show: true
+        }
       },
-      edgeLabel: {
-        show: false
-      },
+      // 图谱初始半径
+      radius: 1000,
+      maxIterationNum: 2,
       // 图数据
       graphData: {
         nodes: [],
         links: []
       },
-      // 图谱初始半径
-      radius: 1000,
-      maxIterationNum: 2,
       // 迭代使用的参数,存储中心节点位于图节点数据钟的位置
       centerNodes: [],
       // 最短路径选择器对象
@@ -97,7 +108,7 @@ export default{
   },
   mounted () {
     this.drawGraph()
-    this.showMainTree()
+    this.getTreeMainData()
   },
   methods: {
     drawGraph () {
@@ -108,7 +119,11 @@ export default{
           text: this.$route.params.treeName
         },
         // 提示框的配置
-        tooltip: {},
+        tooltip: {
+          show: true,
+          trigger: 'item',
+          formatter: '{b}'
+        },
         // 数据更新动画的时长
         animationDurationUpdate: 1500,
         // 数据更新动画的缓动效果
@@ -135,7 +150,7 @@ export default{
             curveness: 0.3
           },
           label: {
-            show: this.label.show,
+            show: this.label.nodeLabel.show,
             fontSize: 15,
             // 文字水平对齐方式，默认自动。
             align: 'center'
@@ -146,7 +161,7 @@ export default{
           edgeSymbolSize: [4, 10],
           edgeLabel: {
             normal: {
-              show: this.edgeLabel.show,
+              show: this.label.edgeLabel.show,
               formatter: '',
               align: 'center',
               textStyle: {
@@ -165,102 +180,50 @@ export default{
               align: 'center'
             }
           },
-          data: this.nodes,
-          links: this.links
-        }]
-      }
-      this.myChart.setOption(option)
-    },
-    showMainTree () {
-      // 获取指定向下渲染的节点并渲染，如果没有的话就使用默认的节点
-      var nowCenterNode = {
-        name: '孙钟',
-        x: 0,
-        y: 0
-      }
-      // 将默认节点加入刚被渲染的中心节点
-      this.centerNodes.push(nowCenterNode)
-      this.graphData.nodes.push(nowCenterNode)
-      this.myChart.setOption({
-        series: [{
           data: this.graphData.nodes,
           links: this.graphData.links
         }]
-      })
-      this.showCenterNode(this.centerNodes, this.radius)
-    },
-    showCenterNode () {
-      let centerNodes = this.centerNodes
-      let length = centerNodes.length
-      let radius = this.radius
-      for (let i = 0; i < length; i++) {
-        this.showSons(centerNodes[i], radius)
-        this.showWivesAndDaughters(centerNodes[i], radius)
       }
-      // 删除上一代中心节点数组,并更新半径
-      for (let j = 0; j < length; j++) {
-        centerNodes.shift()
-      }
-      // 将半径更新
-      this.radius *= 2
-    },
-    showSons (node, radius) {
-      // 在原渲染基础上，加载指定节点的儿子节点并渲染
-      this.$axios
-        .get('/tree/' + this.$route.params.treeName + '/node/' + node.name + '/sons/', {
-          params: {
-            name: node.name,
-            x: node.x,
-            y: node.y,
-            radius: radius
-          }
-        })
-        .then(response => {
-          var beforeLength = this.graphData.nodes.length
-          var sons = this.loadNode(response, this.graphData.nodes)
-          if (sons !== null) {
-            var nowNodes = this.graphData.nodes
-            // 取出下一代中心节点
-            for (let i = beforeLength; i < nowNodes.length; i++) {
-              this.centerNodes.push(nowNodes[i])
+      this.myChart.setOption(option)
+      var _this = this
+      this.myChart.on('click', function (params) {
+        if (params.componentType === 'series') {
+          if (params.seriesType === 'graph') {
+            if (params.dataType === 'node') {
+              _this.selectUtilIndex = '6'
+              _this.bus.$emit('on-clickNode', params.name)
             }
-            // 将刚被渲染的中心节点更新
-            this.myChart.setOption({
-              series: [{
-                data: sons,
-                links: this.loadLink(response, this.graphData.links)
-              }]
-            })
           }
-        })
-        .catch(response => {})
+        }
+      })
     },
-    showWivesAndDaughters (node, radius) {
-      // 在原渲染基础上，加载指定节点的妻子和女儿节点并渲染
+    getTreeMainData () {
       this.$axios
-        .get('/tree/' + this.$route.params.treeName + '/node/' + node.name + '/wives-and-daughters/', {
+        .get('/tree/' + this.$route.params.treeName + '/tree-main-data', {
           params: {
-            name: node.name,
-            x: node.x,
-            y: node.y,
-            radius: radius
+            center_node: '孙权',
+            radius: this.radius
           }
         })
         .then(response => {
-          // 使用this.nodes与this.links的原因是在原来的基础上继续渲染
-          var nodes = this.loadNode(response, this.graphData.nodes)
-          if (nodes != null) {
+          if (response.data.code === 200) {
+            this.graphData.nodes = response.data.data[0]
+            this.graphData.links = this.loadLink(response)
+            this.centerNodes = response.data.data[2]
             this.myChart.setOption({
               series: [{
-                data: nodes,
-                links: this.loadLink(response, this.graphData.links)
+                data: this.graphData.nodes,
+                links: this.graphData.links
               }]
             })
           }
         })
         .catch(response => {})
     },
-    loadNode (response, nodes) {
+    expandTree () {
+    },
+    loadNode (response) {
+      var nodes = []
       // 将普通节点加载
       var nodesList = response.data.data[0]
       var nodesNum = nodesList.length
@@ -278,7 +241,8 @@ export default{
       }
       return nodes
     },
-    loadLink (response, links) {
+    loadLink (response) {
+      var links = []
       // 将关系加载
       var linksList = response.data.data[1]
       var linksNum = linksList.length
@@ -294,7 +258,26 @@ export default{
       return links
     },
     handleSelect (index) {
-      this.selectUtilIndex = index
+      if (index === '1' || index === '2') {
+      } else {
+        this.selectUtilIndex = index
+      }
+    },
+    changeLabel () {
+      this.label.nodeLabel.show = !this.label.nodeLabel.show
+      this.label.edgeLabel.show = !this.label.edgeLabel.show
+      this.myChart.setOption({
+        series: [{
+          label: {
+            show: this.label.nodeLabel.show
+          },
+          edgeLabel: {
+            normal: {
+              show: this.label.edgeLabel.show
+            }
+          }
+        }]
+      })
     }
   }
 }
@@ -317,25 +300,24 @@ export default{
 .cssTreeUtilNavDetail {
   margin-top: 50px;
   margin-left: 10px;
+  height: 100%;
   width: 64px;
+}
+.cssTreeShowDetail {
+  margin: 50px auto 0 auto;
+  height: 100%;
 }
 .cssTreeShowPanel{
   height: 500px;
   width: 800px;
   padding: 0px;
-  margin: 50px auto 0 auto;
-  box-shadow: rgba(0, 0, 0, 0.04) 0px 4px 20px;
-  border-radius: 15px;
-  border-width: 1px;
-  border-style: solid;
-  border-color: rgb(238, 238, 238);
 }
 .cssTreeUtilDetail {
   margin: 50px 10px 0px 10px;
   width: 246px;
   height: 100%;
 }
-.cssTreeUtilShow {
+.cssTreeUtilShowPanel {
   height: 500px;
 }
 </style>

@@ -21,8 +21,7 @@
             </span>
             <el-dropdown-menu slot="dropdown">
               <template v-if="this.userNickname !== null">
-                <el-dropdown-item>{{ this.userNickname }}</el-dropdown-item>
-                <el-dropdown-item @click.native="turnToHomepage">个人主页</el-dropdown-item>
+                <el-dropdown-item @click.native="turnToHomepage">{{ this.userNickname }}</el-dropdown-item>
               </template>
               <template v-else>
                 <el-dropdown-item @click.native="turnToLogin">登录</el-dropdown-item>
