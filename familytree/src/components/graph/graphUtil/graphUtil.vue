@@ -79,32 +79,48 @@
         </el-form-item>
       </el-form>
       <el-divider></el-divider>
-      <p>姓名： {{ this.queryNodeInfo.name }}</p>
-      <p>出生日期： {{ this.queryNodeInfo.birthTime }}</p>
-      <p>死亡日期： {{ this.queryNodeInfo.deathTime }}</p>
-      <p>生评：{{ this.queryNodeInfo.majorAchievements }}</p>
-      <el-button @click.native="showEditNodeInfoPanel()" type="primary" plain>修改</el-button>
+      <div class="cssTreeUtilNodeInfoDetail" style="width: 220px;">
+        <el-scrollbar style="height: 100%; width: 100%;">
+          <p>姓名： {{ this.queryNodeInfo.name }}</p>
+          <p>出生日期： {{ this.queryNodeInfo.birthTime }}</p>
+          <p>死亡日期： {{ this.queryNodeInfo.deathTime }}</p>
+          <p>生评：{{ this.queryNodeInfo.majorAchievements }}</p>
+          <el-button @click.native="showEditNodeInfoPanel()" type="primary" plain>修改</el-button>
+        </el-scrollbar>
+      </div>
     </template>
     <template v-else>
-      <el-form ref="queryNodeInfo" :model="this.queryNodeInfo" label-position="left" class="cssTreeUtilShowDetail">
-        <p>{{ queryNodeInfo.name }}</p>
-        <el-form-item label="出生日期:" placeholder="出生日期:">
-          <el-input v-model="queryNodeInfo.birthTime"></el-input>
-        </el-form-item>
-        <el-form-item label="死亡日期:">
-          <el-input v-model="queryNodeInfo.deathTime" placeholder="死亡日期:"></el-input>
-        </el-form-item>
-        <el-form-item label="生评:">
-          <el-input
-            type="textarea"
-            :autosize="{ minRows: 2, maxRows: 4 }"
-            placeholder="生评:"
-            v-model="queryNodeInfo.majorAchievements"></el-input>
-        </el-form-item>
-        <el-form-item>
-          <el-button @click.native="showEditNodeInfoPanel()" type="primary" plain>取消</el-button>
-          <el-button @click.native="editNodeInfo()" type="primary" plain>保存</el-button>
-        </el-form-item>
+      <el-form ref="queryNodeInfo" :model="this.queryNodeInfo" label-position="left"
+          class="cssTreeUtilShowDetail" style="height: 500px; width: 200px">
+        <el-scrollbar style="height: 100%; width: 100%;">
+          <p>{{ queryNodeInfo.name }}</p>
+          <el-form-item label="出生日期:" placeholder="出生日期:">
+            <el-input v-model="queryNodeInfo.birthTime"></el-input>
+          </el-form-item>
+          <el-form-item label="死亡日期:">
+            <el-input v-model="queryNodeInfo.deathTime" placeholder="死亡日期:"></el-input>
+          </el-form-item>
+          <el-form-item label="生评:">
+            <el-input
+              type="textarea"
+              :autosize="{ minRows: 4, maxRows: 6 }"
+              placeholder="请输入生评"
+              v-model="queryNodeInfo.majorAchievements"></el-input>
+          </el-form-item>
+          <el-form-item label="备注:">
+            <el-input
+              type="textarea"
+              :autosize="{ minRows: 3, maxRows: 4 }"
+              maxlength="50"
+              show-word-limit
+              placeholder="请输入备注"
+              v-model="queryNodeInfo.commit"></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button @click.native="showEditNodeInfoPanel()" type="primary" plain>取消</el-button>
+            <el-button @click.native="editNodeInfo()" type="primary" plain>保存</el-button>
+          </el-form-item>
+        </el-scrollbar>
       </el-form>
     </template>
   </template>
@@ -156,7 +172,8 @@ export default {
         name: null,
         birthTime: null,
         deathTime: null,
-        majorAchievements: null
+        majorAchievements: null,
+        commit: ''
       },
       queryShortestpathVO: {
         startPersonName: '',
@@ -196,8 +213,14 @@ export default {
         })
         .then(response => {
           if (response.data.code === 200) {
+            // 清空表单数据
+            this.addingNode.name = ''
+            this.addingNode.birthTime = ''
+            this.addingNode.deathTime = ''
+            this.addingNode.majorAchievements = ''
+            this.addingNode.commit = ''
             this.$alert(response.data.message)
-            this.$emit('handleGetTreeMainData')
+            this.$emit('handleGetTreeMainNodeData')
           } else {
             this.$alert(response.data.message)
           }
@@ -210,7 +233,7 @@ export default {
         .then(response => {
           if (response.data.code === 200) {
             this.$alert(response.data.message)
-            this.$emit('handleGetTreeMainData')
+            this.$emit('handleGetTreeMainNodeData')
           } else {
             this.$alert(response.data.message)
           }
@@ -227,7 +250,7 @@ export default {
         .then(response => {
           if (response.data.code === 200) {
             this.$alert(response.data.message)
-            this.$emit('handleGetTreeMainData')
+            this.$emit('handleGetTreeMainNodeData')
           } else {
             this.$alert(response.data.message)
           }
@@ -245,7 +268,7 @@ export default {
         .then(response => {
           if (response.data.code === 200) {
             this.$alert(response.data.message)
-            this.$emit('handleGetTreeMainData')
+            this.$emit('handleGetTreeMainNodeData')
           } else {
             this.$alert(response.data.message)
           }
@@ -287,11 +310,13 @@ export default {
           name: this.queryNodeInfo.name,
           birthTime: this.queryNodeInfo.birthTime,
           deathTime: this.queryNodeInfo.deathTime,
-          majorAchievements: this.queryNodeInfo.majorAchievements
+          majorAchievements: this.queryNodeInfo.majorAchievements,
+          commit: this.queryNodeInfo.commit
         })
         .then(response => {
           if (response.data.code === 200 || response.data.code === 400) {
             this.editState = false
+            this.queryNodeInfo.commit = ''
             this.$alert(response.data.message)
           }
         })
@@ -402,8 +427,21 @@ export default {
   display: flex;
   flex-flow: column nowrap;
   /* 用来定义伸缩项目沿主轴线的对齐方式。*/
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
   height: 100%;
+}
+.cssTreeUtilNodeInfoDetail {
+  display: flex;
+  flex-flow: column nowrap;
+  /* 用来定义伸缩项目沿主轴线的对齐方式。*/
+  justify-content: center;
+  align-items: flex-start;
+  height: 230px;
+}
+</style>
+<style>
+.el-scrollbar__wrap{
+  overflow-x: hidden;
 }
 </style>

@@ -3,8 +3,10 @@
   <el-header>
     <tree-header></tree-header>
   </el-header>
-  <el-main style="overflow-x: hidden;">
-    <router-view/>
+  <el-main style="height: 429px;">
+    <el-scrollbar style="height: 100%;">
+      <router-view/>
+    </el-scrollbar>
   </el-main>
   <el-footer>
     <tree-footer></tree-footer>
@@ -45,5 +47,8 @@ html,body, #app,.el-container{
   padding: 0px;
   margin:  0px;
   height: 100%;
+}
+.el-scrollbar__wrap {
+  overflow-x: hidden;
 }
 </style>

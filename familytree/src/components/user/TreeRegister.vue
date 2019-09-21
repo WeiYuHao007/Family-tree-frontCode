@@ -24,7 +24,6 @@
   </div>
 </div>
 </template>
-
 <script>
 export default {
   name: 'TreeRegister',
@@ -45,10 +44,10 @@ export default {
     register () {
       this.$axios
         .post('/user/', {
-          userNickName: this.register.nickname,
-          userPhoneNum: this.register.phoneNum,
-          userEmail: this.register.email,
-          userPassword: this.register.password
+          nickname: this.registerVO.nickname,
+          phoneNum: this.registerVO.phoneNum,
+          email: this.registerVO.email,
+          password: this.registerVO.password
         })
         .then(response => {
           if (response.data.code === 200) {

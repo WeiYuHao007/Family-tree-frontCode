@@ -22,26 +22,71 @@
             <el-dropdown-menu slot="dropdown">
               <template v-if="this.userNickname !== null">
                 <el-dropdown-item @click.native="turnToHomepage">{{ this.userNickname }}</el-dropdown-item>
+                <el-dropdown-item @click.native="showMessagePanel">消息
+                  <el-badge :value="messages.number" :max="10"></el-badge>
+                </el-dropdown-item>
+                <el-dropdown-item @click.native="logout">注销</el-dropdown-item>
               </template>
               <template v-else>
                 <el-dropdown-item @click.native="turnToLogin">登录</el-dropdown-item>
               </template>
-              <el-dropdown-item @click.native="logout">注销</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </div>
       </div>
     </div>
   </div>
+  <el-dialog title="消息列表" :visible.sync="messageDialogFormVisible" width="45%">
+    <el-table
+      :data="messages.applications.filter(application => !messages.searchName || application.userNickname.toLowerCase().includes(messages.searchName.toLowerCase()))"
+      style="width: 100%">
+      <el-table-column type="expand">
+        <template slot-scope="props">
+          验证信息：<span>{{ props.row.applicationComment }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column
+        label="申请图谱"
+        prop="genealogyName">
+      </el-table-column>
+      <el-table-column
+        label="申请人"
+        prop="userNickname">
+      </el-table-column>
+      <el-table-column
+        align="right">
+        <template slot="header">
+          <el-input
+            v-model="messages.searchName"
+            size="mini"
+            placeholder="输入关键字搜索申请人"/>
+        </template>
+        <template slot-scope="scope">
+          <el-button
+            size="mini"
+            @click="acceptApplication(scope.row.genealogyName, scope.row.userNickname)">通过</el-button>
+          <el-button
+            size="mini"
+            type="danger"
+            @click="refuseApplication(scope.row.genealogyName, scope.row.userNickname)">拒绝</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </el-dialog>
 </div>
 </template>
-
 <script>
 export default {
   name: 'TreeHeader',
   data () {
     return {
-      userNickname: null
+      userNickname: null,
+      messageDialogFormVisible: false,
+      messages: {
+        applications: [],
+        searchName: '',
+        number: null
+      }
     }
   },
   mounted () {
@@ -79,12 +124,57 @@ export default {
     },
     getNickname () {
       this.$axios
-        .get('/user/nickname/')
+        .get('/user/header-info')
         .then(response => {
           if (response.data.code === 200) {
-            this.userNickname = response.data.data
+            this.userNickname = response.data.data[0]
+            if (response.data.data[1] !== null && response.data.data[1] > 0) {
+              this.messageReminding()
+              this.messages.number = response.data.data[1]
+            }
           }
         })
+    },
+    messageReminding () {
+      this.$notify.info({
+        title: '消息提示',
+        message: '您有新的消息。',
+        offset: 50
+      })
+    },
+    showMessagePanel () {
+      this.messageDialogFormVisible = true
+      this.$axios
+        .get('/user/' + this.userNickname + '/admin-trees/application')
+        .then(response => {
+          if (response.data.code === 200) {
+            this.messages.applications = response.data.data
+            this.messages.number = response.data.data.length
+          }
+        })
+        .catch()
+    },
+    acceptApplication (genealogyName, userNickname) {
+      this.$axios
+        .patch('/tree/' + genealogyName + '/application/' + userNickname)
+        .then(response => {
+          if (response.data.code === 200) {
+            this.showMessagePanel()
+            this.$alert(response.data.message)
+          }
+        })
+        .catch(response => {})
+    },
+    refuseApplication (genealogyName, userNickname) {
+      this.$axios
+        .delete('/tree/' + genealogyName + '/application/' + userNickname)
+        .then(response => {
+          if (response.data.code === 200) {
+            this.showMessagePanel()
+            this.$alert(response.data.message)
+          }
+        })
+        .catch(response => {})
     }
   }
 }

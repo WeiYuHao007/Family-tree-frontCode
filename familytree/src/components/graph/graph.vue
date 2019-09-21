@@ -4,7 +4,7 @@
     <div class="cssTreeUtilNavDetail">
       <el-menu :collapse='true' @select="handleSelect" style="border-right: 0px;">
         <el-menu-item index="1">
-          <i class="el-icon-refresh" @click="expandTree()"></i>
+          <i class="el-icon-refresh" @click="getTreeMainNodeData()"></i>
         </el-menu-item>
         <el-menu-item index="2">
           <i class="el-icon-view" @click="changeLabel()"></i>
@@ -60,7 +60,7 @@
         <graph-util
           :myChart="this.myChart"
           :utilIndex="this.selectUtilIndex"
-          @handleGetTreeMainData="getTreeMainData"></graph-util>
+          @handleGetTreeMainNodeData="getTreeMainNodeData"></graph-util>
       </el-card>
     </div>
   </div>
@@ -90,7 +90,7 @@ export default{
         }
       },
       // 图谱初始半径
-      radius: 1000,
+      radius: 2000,
       maxIterationNum: 2,
       // 图数据
       graphData: {
@@ -108,7 +108,8 @@ export default{
   },
   mounted () {
     this.drawGraph()
-    this.getTreeMainData()
+    this.getTreeInfoData()
+    this.getTreeMainNodeData()
   },
   methods: {
     drawGraph () {
@@ -139,7 +140,7 @@ export default{
           // 可以设置成'scale'或者'move'，设置成true为都开启
           roam: true,
           // 鼠标漫游缩放时节点的相应缩放比例，当设为0时节点不随着鼠标的缩放而缩放
-          nodeScaleRatio: 0.4,
+          nodeScaleRatio: 0.1,
           // 是否在鼠标移到节点上的时候突出显示节点以及节点的边和邻接节点。
           focusNodeAdjacency: true,
           itemStyle: {
@@ -197,11 +198,10 @@ export default{
         }
       })
     },
-    getTreeMainData () {
+    getTreeMainNodeData () {
       this.$axios
         .get('/tree/' + this.$route.params.treeName + '/tree-main-data', {
           params: {
-            center_node: '孙权',
             radius: this.radius
           }
         })
@@ -216,10 +216,13 @@ export default{
                 links: this.graphData.links
               }]
             })
+          } else {
+            this.$alert(response.data.message)
           }
         })
         .catch(response => {})
     },
+    getTreeInfoData () {},
     expandTree () {
     },
     loadNode (response) {
