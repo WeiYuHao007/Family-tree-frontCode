@@ -47,6 +47,9 @@
           </el-menu-item-group>
         </el-submenu>
         <el-menu-item index="8">
+          <i class="el-icon-s-management"></i>
+        </el-menu-item>
+        <el-menu-item index="9">
           <i class="el-icon-setting"></i>
         </el-menu-item>
       </el-menu>

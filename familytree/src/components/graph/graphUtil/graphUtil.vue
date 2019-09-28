@@ -107,13 +107,13 @@
               placeholder="请输入生评"
               v-model="queryNodeInfo.majorAchievements"></el-input>
           </el-form-item>
-          <el-form-item label="备注:">
+          <el-form-item label="修改备注:">
             <el-input
               type="textarea"
               :autosize="{ minRows: 3, maxRows: 4 }"
               maxlength="50"
               show-word-limit
-              placeholder="请输入备注"
+              placeholder="请输入修改备注"
               v-model="queryNodeInfo.commit"></el-input>
           </el-form-item>
           <el-form-item>
@@ -137,6 +137,114 @@
         <el-button @click.native="findShortestpath()" type="primary" plain>查询</el-button>
       </el-form-item>
     </el-form>
+  </template>
+  <template v-if="utilIndex === '8'">
+    <div style="height: 500px;width: 220px;">
+      <el-scrollbar style="height: 100%; width: 100%;">
+        <h2>管理总览</h2>
+        <p>
+          <el-button @click.native="dialogFormVisible.transferAdmin = true" type="text" plain>转让管理员身份</el-button>
+          <el-dialog title="转让管理员身份" :visible.sync="dialogFormVisible.transferAdmin" width="25%">
+            <el-form size="medium" style="margin: 0px 10px;">
+              <p>现有管理员：<span>{{this.treeDetailInfo.admin}}</span></p>
+              <el-form-item>
+                <el-select v-model="newAdminNickname" placeholder="请选择新管理员">
+                  <el-option
+                    v-for="follower in followersNicknameList"
+                    :key="follower"
+                    :label="follower"
+                    :value="follower">
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="transferAdmin()">转让</el-button>
+                <el-button @click="dialogFormVisible.transferAdmin = false; getTreeDetailInfo()">取消</el-button>
+              </el-form-item>
+            </el-form>
+          </el-dialog>
+        </p>
+        <p>
+          <el-button @click.native="dialogFormVisible.changeCenterNode = true" type="text" plain>修改渲染中心</el-button>
+          <el-dialog title="修改渲染中心" :visible.sync="dialogFormVisible.changeCenterNode" width="25%">
+            <el-form size="medium" style="margin: 0px 10px;">
+              <p>原渲染中心：<span>{{this.treeDetailInfo.defaultCenterPerson}}</span></p>
+              <el-form-item>
+                <el-select v-model="newCenterNodeName" placeholder="修改渲染中心">
+                  <el-option
+                    v-for="node in nodesNameList"
+                    :key="node"
+                    :label="node"
+                    :value="node">
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="changeCenterNode()">修改</el-button>
+                <el-button @click="dialogFormVisible.changeCenterNode = false; getTreeDetailInfo()">取消</el-button>
+              </el-form-item>
+            </el-form>
+          </el-dialog>
+        </p>
+        <p>
+          <el-button @click.native="dialogFormVisible.changeDescription = true" type="text" plain>修改图谱名称与简介</el-button>
+          <el-dialog title="修改图谱名称与简介" :visible.sync="dialogFormVisible.changeDescription" width="25%">
+            <el-form size="medium" style="margin: 0px 10px;">
+              <el-form-item label="图谱名称:">
+                <el-input v-model="treeDetailInfo.name" placeholder="新图谱名称" max="20"></el-input>
+              </el-form-item>
+              <el-form-item label="图谱简介:">
+                <el-input
+                  type="textarea"
+                  :autosize="{ minRows: 4, maxRows: 6 }"
+                  placeholder="请输入新的图谱简介"
+                  v-model="treeDetailInfo.description"></el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="changeDescription">修改</el-button>
+                <el-button @click="dialogFormVisible.changeDescription = false; getTreeDetailInfo()">取消</el-button>
+              </el-form-item>
+            </el-form>
+          </el-dialog>
+        </p>
+        <p>
+          <el-button @click.native="dialogFormVisible.cancelFollow = true; this.getFollowers();" type="text" plain>取消普通用户关注</el-button>
+          <el-dialog title="取消普通用户关注" :visible.sync="dialogFormVisible.cancelFollow" width="25%">
+            <el-form size="medium" style="margin: 0px 10px;">
+              <el-form-item>
+                <el-select v-model="cancelFollowUserName" placeholder="请选择所要取消的用户">
+                  <el-option
+                    v-for="follower in followersNicknameList"
+                    :key="follower"
+                    :label="follower"
+                    :value="follower">
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" @click="cancelFollow()">立即取消</el-button>
+                <el-button @click="dialogFormVisible.cancelFollow = false">取消</el-button>
+              </el-form-item>
+            </el-form>
+          </el-dialog>
+        </p>
+      </el-scrollbar>
+      </div>
+  </template>
+  <template v-if="utilIndex === null">
+    <div class="cssTreeUtilShowDetail" style="width: 220px;">
+      <el-scrollbar style="height: 100%; width: 100%;">
+        <h1>图谱详情</h1>
+        <p>图谱ID：<span>{{this.treeDetailInfo.id}}</span></p>
+        <div>图谱管理员：
+          <p>{{this.treeDetailInfo.admin}}</p>
+        </div>
+        <p>渲染中心：<span>{{this.treeDetailInfo.defaultCenterPerson}}</span></p>
+        <div>图谱简介：
+          <p>{{this.treeDetailInfo.description}}</p>
+        </div>
+      </el-scrollbar>
+      </div>
   </template>
 </div>
 </template>
@@ -166,7 +274,17 @@ export default {
       },
       queryNodeName: null,
       editState: false,
+      // 本图谱拥有的所有节点
       nodesNameList: [],
+      followersNicknameList: [],
+      // 本图谱的详细详细
+      treeDetailInfo: {
+        id: '',
+        name: '',
+        admin: '',
+        defaultCenterPerson: '',
+        description: ''
+      },
       timeout: null,
       queryNodeInfo: {
         name: null,
@@ -178,11 +296,23 @@ export default {
       queryShortestpathVO: {
         startPersonName: '',
         endPersonName: ''
-      }
+      },
+      dialogFormVisible: {
+        transferAdmin: false,
+        changeCenterNode: false,
+        changeDescription: false,
+        cancelFollow: false
+      },
+      newCenterNodeName: '',
+      newAdminNickname: '',
+      newTreeName: '',
+      cancelFollowUserName: ''
     }
   },
   mounted () {
+    this.getFollowers()
     this.getNodesNameList()
+    this.getTreeDetailInfo()
     var _this = this
     // 点击显示节点信息
     this.bus.$on('on-clickNode', function (clickedNodeName) {
@@ -333,6 +463,32 @@ export default {
         })
         .catch(response => {})
     },
+    // 获取本图谱的所有关注者
+    getFollowers () {
+      this.$axios
+        .get('/tree/' + this.$route.params.treeName + '/followers')
+        .then(response => {
+          if (response.data.code === 200) {
+            this.followersNicknameList = response.data.data
+          }
+        }
+        )
+        .catch(response => {})
+    },
+    getTreeDetailInfo () {
+      this.$axios
+        .get('/tree/' + this.$route.params.treeName)
+        .then(response => {
+          if (response.data.code === 200) {
+            this.treeDetailInfo.id = response.data.data.genealogyId
+            this.treeDetailInfo.name = response.data.data.genealogyName
+            this.treeDetailInfo.admin = response.data.data.genealogyAdmin
+            this.treeDetailInfo.defaultCenterPerson = response.data.data.genealogyDefaultCenterPerson
+            this.treeDetailInfo.description = response.data.data.genealogyDescription
+          }
+        })
+        .catch(response => {})
+    },
     querySearchAsync (queryString, cb) {
       var nodesNameListLength = this.nodesNameList.length
       var queryNodesList = []
@@ -418,6 +574,59 @@ export default {
         })
       }
       return links
+    },
+    transferAdmin () {
+      this.$axios
+        .patch('/tree/' + this.$route.params.treeName + '/admin/' + this.newAdminNickname)
+        .then(response => {
+          if (response.data.code === 200) {
+            this.dialogFormVisible.transferAdmin = false
+          }
+          this.$alert(response.data.message)
+        })
+        .catch(response => {})
+    },
+    changeCenterNode () {
+      this.$axios
+        .patch('/tree/' + this.$route.params.treeName + '/center-node', {
+          name: this.newCenterNodeName
+        })
+        .then(response => {
+          if (response.data.code === 200) {
+            this.dialogFormVisible.changeCenterNode = false
+            this.getTreeDetailInfo()
+            this.$emit('handleGetTreeMainNodeData')
+          }
+          this.$alert(response.data.message)
+        })
+        .catch(response => {})
+    },
+    changeDescription () {
+      this.$axios
+        .patch('/tree/' + this.$route.params.treeName + '/name-and-description', {
+          newGenealogyName: this.treeDetailInfo.name,
+          newDescription: this.treeDetailInfo.description
+        })
+        .then(response => {
+          if (response.data.code === 200) {
+            this.dialogFormVisible.changeDescription = false
+          }
+          this.getTreeDetailInfo()
+          this.$alert(response.data.message)
+        })
+        .catch(response => {})
+    },
+    cancelFollow () {
+      this.$axios
+        .delete('/tree/' + this.$route.params.treeName + '/user/' + this.cancelFollowUserName)
+        .then(response => {
+          if (response.data.code === 200) {
+            this.dialogFormVisible.cancelFollow = false
+            this.cancelFollowUserName = ''
+          }
+          this.$alert(response.data.message)
+        })
+        .catch(response => {})
     }
   }
 }

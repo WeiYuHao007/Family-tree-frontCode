@@ -194,7 +194,6 @@ export default {
   height: 100%;
   width: 1140px;
   padding: 0;
-  margin-bottom: 1px solid #dcdfe6;
 }
 .cssHeaderNav {
   display: flex;

@@ -4,32 +4,75 @@
     <div class="cssUserContainer">
       <!-- 用户部分信息显示区域 -->
       <div class="cssUserDetail">
-        <el-image style="width: 200px height: 200px" src="https://avatars1.githubusercontent.com/u/49115554?s=460&amp;v=4">
-          <div slot="error">
-            <i class="el-icon-picture-outline" style="width: 200px height: 200px"></i>
+        <template v-if="!panelVisible.userInfo">
+          <el-image
+          :src="imageUrl"
+          class="avatar"
+          fit="fill">
+          </el-image>
+          <h1>
+            <span>
+              {{ this.userShow.nickname }}
+            </span>
+          </h1>
+          <div style="padding-bottom: 16px;">
+            <el-button @click="editUserInfo" type="primary" style="width: 200px;" plain>Edit</el-button>
           </div>
-        </el-image>
-        <h1>
-          <span>
-            {{ this.$route.params.nickname }}
-          </span>
-        </h1>
-        <div style="padding-bottom: 16px;">
-          <el-button type="primary" style="width: 200px;">Edit</el-button>
-        </div>
-        <div>
-          <div>{{ this.userShow.introduction }}</div>
-        </div>
+          <div>
+            <div>{{ this.userShow.introduction }}</div>
+          </div>
+        </template>
+        <template v-else>
+          <el-upload
+            name="avatar"
+            class="avatar-uploader"
+            :action="''"
+            :show-file-list="false"
+            :with-credentials="true"
+            :before-upload="beforeAvatarUpload"
+            :http-request='uploadUserAvatar'>
+            <i class="el-icon-plus avatar-uploader-icon"></i>
+          </el-upload>
+          <div style="padding-bottom: 16px;">
+            <el-button @click="editUserInfo" type="primary" style="width: 200px;" plain>Cancel</el-button>
+          </div>
+          <el-card shadow="hover">
+            <el-form ref="userInfo" :model="newUserInfo">
+              <el-form-item>
+                <el-input
+                  type="text"
+                  v-model="newUserInfo.nickname"
+                  placeholder="昵称">
+                </el-input>
+              </el-form-item>
+              <el-form-item>
+                <el-input
+                  type="textarea"
+                  placeholder="请输入个人简介"
+                  v-model="newUserInfo.introduction"
+                  :autosize="{ minRows: 4, maxRows: 5 }"
+                  maxlength="50"
+                  show-word-limit>
+                </el-input>
+              </el-form-item>
+              <el-form-item>
+                <div style="display: flex;flex-flow: column nowrap;justify-content: flex-start;align-items: center;">
+                  <el-button @click="submitNewUserInfo" type="success" icon="el-icon-check" circle></el-button>
+                </div>
+              </el-form-item>
+            </el-form>
+          </el-card>
+        </template>
       </div>
       <!-- 图谱信息显示区域 -->
       <div class="cssTreeDetail">
         <!-- 图谱主要显示区域 -->
         <div class="cssTreeNavContainer">
-          <el-tabs v-model="this.treeActiveTab" lazy="true">
+          <el-tabs v-model="treeActiveTab" lazy="true">
             <el-tab-pane label="关注" name="1">
               <template>
                 <div class="cssTreePanel">
-                  <el-card class="cssTreePanelItem" v-for="(treeName, index) in this.focusedTreeNameList" :key="index" shadow="hover">
+                  <el-card class="cssTreePanelItem" v-for="(treeName, index) in focusedTreeNameList" :key="index" shadow="hover">
                     <div class="cssTreePanelItemContent">
                       <span> {{ treeName }} </span>
                       <span>
@@ -70,7 +113,7 @@
                       </el-form-item>
                       <el-form-item>
                         <el-button type="primary" @click="createTree()">立即创建</el-button>
-                        <el-button>取消</el-button>
+                        <el-button @click="newTreeDialogFormVisible = false">取消</el-button>
                       </el-form-item>
                     </el-form>
                   </el-dialog>
@@ -78,7 +121,7 @@
                 <!-- 图谱事件时间戳 -->
                 <div class="cssTreeEventsPanel">
                   <el-timeline class="cssTreeEvents">
-                    <el-timeline-item v-for="event in this.treeEvents" :key="event"
+                    <el-timeline-item v-for="(event, index) in treeEvents" :key="index"
                       :timestamp="event.updateTime" placement="top">
                       <el-card>
                         <h4>{{ event.updateCommit }}</h4>
@@ -93,7 +136,7 @@
               <template>
                 <el-input v-model="searchTreeKeyword" @keyup.enter.native="searchTrees(searchTreeKeyword, searchTreePageNum, 'query')" placeholder="请输入查询图谱的名称"></el-input>
                 <el-collapse style="border: 0px;">
-                  <el-collapse-item v-for="(tree, index) in this.searchedTreeList" :key="index">
+                  <el-collapse-item v-for="(tree, index) in searchedTreeList" :key="index">
                     <template slot="title">
                       {{ tree.name }}
                     </template>
@@ -131,7 +174,7 @@
       <!-- 好友面板 -->
       <div class="cssFriendDetail">
         谱友
-        <p v-for="treeName in this.focusedTreeNameList" :key="treeName">
+        <p v-for="treeName in focusedTreeNameList" :key="treeName">
           <i class="el-icon-caret-right">{{ treeName }}</i>
         </p>
       </div>
@@ -148,8 +191,11 @@ export default {
       userShow: {
         nickname: '',
         introduction: '',
+        avatar: '',
         registerTime: ''
       },
+      fileList: [],
+      imageUrl: '',
       treeActiveTab: '1',
       // 用户关注的所有图谱的列表
       focusedTreeNameList: [],
@@ -171,7 +217,14 @@ export default {
         nodeMajorAchievements: ''
       },
       // 创建图谱面板可见性
-      newTreeDialogFormVisible: false
+      newTreeDialogFormVisible: false,
+      newUserInfo: {
+        nickname: '',
+        introduction: ''
+      },
+      panelVisible: {
+        userInfo: false
+      }
     }
   },
   mounted () {
@@ -195,18 +248,66 @@ export default {
     },
     getUserShow () {
       this.$axios
-        .get('/user/' + this.$route.params.nickname + '/info/', {
-          params: {
-            // 获取UserShow
-            all: false
-          }
-        })
+        .get('/user/' + this.$route.params.nickname + '/info-show')
         .then(response => {
           if (response.data.code === 200) {
             this.userShow = response.data.data
+            this.imageUrl = 'http://localhost:8081/api/user/avatar/' + this.userShow.avatar + '?' + new Date().getTime()
           }
         })
         .catch(response => {})
+    },
+    editUserInfo () {
+      this.panelVisible.userInfo = !this.panelVisible.userInfo
+      this.newUserInfo.nickname = this.userShow.nickname
+      this.newUserInfo.introduction = this.userShow.introduction
+    },
+    submitNewUserInfo () {
+      this.$axios
+        .post('/user/nickname-introduction', {
+          newNickname: this.newUserInfo.nickname,
+          newIntroduction: this.newUserInfo.introduction
+        })
+        .then(response => {
+          if (response.data.code === 200) {
+            this.userShow.nickname = this.newUserInfo.nickname
+            this.userShow.introduction = this.newUserInfo.introduction
+            this.panelVisible.userInfo = !this.panelVisible.userInfo
+          }
+          this.$alert(response.data.message)
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
+    uploadUserAvatar (fileObj) {
+      let formData = new FormData()
+      formData.set('avatar', fileObj.file)
+      this.$axios
+        .post('/user/avatar', formData, {headers: {'Content-Type': 'multipart/form-data'}})
+        .then(response => {
+          this.panelVisible.userInfo = !this.panelVisible.userInfo
+          this.imageUrl = 'http://localhost:8081/api/user/avatar/' + this.userShow.avatar + '?' + new Date().getTime()
+          this.$alert('上传成功。')
+        })
+        .catch(error => {
+          console.log(error)
+          this.$alert('上传失败。')
+        })
+    },
+    submitAvatarUpload () {
+      this.uploadUserAvatar()
+    },
+    beforeAvatarUpload (file) {
+      const isJPG = file.type === 'image/jpeg'
+      const isLt2M = file.size / 1024 / 1024 < 2
+      if (!isJPG) {
+        this.$message.error('上传头像图片只能是 JPG 格式!')
+      }
+      if (!isLt2M) {
+        this.$message.error('上传头像图片大小不能超过 2MB!')
+      }
+      return isJPG && isLt2M
     },
     // 获得关注图谱的事件
     getFocusTreeEvents () {
@@ -383,5 +484,32 @@ export default {
 .cssFriendDetail {
   border: 1px;
   margin-right: 35px;
+}
+.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 200px;
+  height: 200px;
+  line-height: 178px;
+  text-align: center;
+}
+.avatar {
+  width: 200px;
+  height: 200px;
+  border-radius: 11px;
+  display: block;
+}
+</style>
+<style>
+.avatar-uploader .el-upload {
+  border: 1px dashed #d9d9d9;
+  border-radius: 11px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 11px;
+}
+.avatar-uploader .el-upload:hover {
+  border-color: #409EFF;
 }
 </style>

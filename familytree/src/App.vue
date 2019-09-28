@@ -3,7 +3,7 @@
   <el-header>
     <tree-header></tree-header>
   </el-header>
-  <el-main style="height: 429px;">
+  <el-main style="height: 100%;">
     <el-scrollbar style="height: 100%;">
       <router-view/>
     </el-scrollbar>

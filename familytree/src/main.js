@@ -11,7 +11,7 @@ import App from './App'
 Vue.use(ElementUI)
 
 // 引用axios，并设置基础URL为后端服务器api地址
-axios.defaults.baseURL = 'http://localhost:8081/api'
+axios.defaults.baseURL = process.env.API_ROOT
 // 将API方法绑定到全局
 Vue.prototype.$axios = axios
 Vue.prototype.$echarts = echarts
