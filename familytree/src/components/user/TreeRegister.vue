@@ -2,7 +2,7 @@
 <div class="cssLoginBox">
   <div class="cssLoginPanel">
     <img ale="FamilyTreeSystem" src="@/assets/FTSlogo.png" style="height: 50px; margin:auto 35% 31px;">
-    <el-form ref="registerVO" :model="registerVO" label-position="left">
+    <el-form ref="registerVO" :model="registerVO" label-position="left" @keyup.enter.native="register">
       <el-form-item>
         <el-input type="text" v-model="registerVO.nickname" placeholder="昵称" clearable></el-input>
       </el-form-item>
@@ -42,6 +42,22 @@ export default {
   },
   methods: {
     register () {
+      if (this.registerVO.nickname === '') {
+        this.$alert('请输入昵称。')
+        return null
+      }
+      if (this.registerVO.phoneNum === '') {
+        this.$alert('请输入电话号码。')
+        return null
+      }
+      if (this.registerVO.email === '') {
+        this.$alert('请输入邮箱。')
+        return null
+      }
+      if (this.registerVO.password === '') {
+        this.$alert('请输入密码。')
+        return null
+      }
       this.$axios
         .post('/user/', {
           nickname: this.registerVO.nickname,
@@ -51,11 +67,9 @@ export default {
         })
         .then(response => {
           if (response.data.code === 200) {
-            this.$alert('注册成功。')
             this.$router.push({path: '/login'})
-          } else {
-            this.$alert(response.data.message)
           }
+          this.$alert(response.data.message)
         })
         .catch(response => {})
     }

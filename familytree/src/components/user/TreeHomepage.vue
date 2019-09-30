@@ -9,6 +9,12 @@
           :src="imageUrl"
           class="avatar"
           fit="fill">
+          <div slot="error" class="image-slot">
+            <el-image
+              src="http://39.97.110.195:80/api/user/avatar/25c58bbf4f7a45b0b9be4cd1ce6c48a2.png"
+              class="avatar"
+              fit="fill"></el-image>
+          </div>
           </el-image>
           <h1>
             <span>
@@ -252,7 +258,10 @@ export default {
         .then(response => {
           if (response.data.code === 200) {
             this.userShow = response.data.data
-            this.imageUrl = 'http://localhost:8081/api/user/avatar/' + this.userShow.avatar + '?' + new Date().getTime()
+            console.log()
+            if (this.userShow.avatar !== null) {
+              this.imageUrl = 'http://39.97.110.195:80/api/user/avatar/' + this.userShow.avatar + '?' + new Date().getTime()
+            }
           }
         })
         .catch(response => {})
@@ -263,6 +272,10 @@ export default {
       this.newUserInfo.introduction = this.userShow.introduction
     },
     submitNewUserInfo () {
+      if (this.newUserInfo.nickname === '') {
+        this.$alert('请输入昵称。')
+        return null
+      }
       this.$axios
         .post('/user/nickname-introduction', {
           newNickname: this.newUserInfo.nickname,
@@ -287,7 +300,7 @@ export default {
         .post('/user/avatar', formData, {headers: {'Content-Type': 'multipart/form-data'}})
         .then(response => {
           this.panelVisible.userInfo = !this.panelVisible.userInfo
-          this.imageUrl = 'http://localhost:8081/api/user/avatar/' + this.userShow.avatar + '?' + new Date().getTime()
+          this.imageUrl = 'http://39.97.110.195:80/api/user/avatar/' + this.userShow.avatar + '?' + new Date().getTime()
           this.$alert('上传成功。')
         })
         .catch(error => {
@@ -379,6 +392,12 @@ export default {
       this.newTreeDialogFormVisible = true
     },
     createTree () {
+      if (this.newTreeInfo.newTreeName === '') {
+        console.log('请输入图谱名称。')
+      }
+      if (this.newTreeInfo.defaultCenterNodeName === '') {
+        console.log('请输入人物名称。')
+      }
       this.$axios
         .post('/tree', {
           newGenealogyName: this.newTreeInfo.newTreeName,

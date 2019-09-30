@@ -2,7 +2,7 @@
 <div class="cssLoginBox">
   <div class="cssLoginPanel">
     <img ale="FamilyTreeSystem" src="@/assets/FTSlogo.png" style="height: 50px; margin:auto 35% 31px;">
-    <el-form ref="userVO" :model="userVO" label-position="left">
+    <el-form ref="userVO" :model="userVO" label-position="left" @keyup.enter.native="login">
       <el-form-item>
         <el-input type="text" v-model="userVO.phoneNum" placeholder="电话号码" clearable></el-input>
       </el-form-item>
@@ -38,6 +38,14 @@ export default {
   },
   methods: {
     login () {
+      if (this.userVO.phoneNum === '') {
+        this.$alert('请输入电话号码。')
+        return null
+      }
+      if (this.userVO.password === '') {
+        this.$alert('请输入密码。')
+        return null
+      }
       this.loginButtonStatus = true
       this.$axios
         .post('/user/status/', {
@@ -46,7 +54,7 @@ export default {
         })
         .then(successResponse => {
           if (successResponse.data.code === 200) {
-            this.bus.$emit('on-login', successResponse.data.data)
+            this.bus.$emit('on-login')
             this.$router.push({path: '/homepage/' + successResponse.data.data})
             this.$alert(successResponse.data.message)
           }

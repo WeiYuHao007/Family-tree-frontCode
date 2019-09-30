@@ -20,7 +20,7 @@
               <el-avatar src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"></el-avatar>
             </span>
             <el-dropdown-menu slot="dropdown">
-              <template v-if="this.userNickname !== null">
+              <template v-if="this.userNickname !== ''">
                 <el-dropdown-item @click.native="turnToHomepage">{{ this.userNickname }}</el-dropdown-item>
                 <el-dropdown-item @click.native="showMessagePanel">消息
                   <el-badge :value="messages.number" :max="10"></el-badge>
@@ -55,7 +55,7 @@
       </el-table-column>
       <el-table-column
         align="right">
-        <template slot="header">
+        <template slot="header" slot-scope="scope">
           <el-input
             v-model="messages.searchName"
             size="mini"
@@ -80,7 +80,7 @@ export default {
   name: 'TreeHeader',
   data () {
     return {
-      userNickname: null,
+      userNickname: '',
       messageDialogFormVisible: false,
       messages: {
         applications: [],
@@ -91,8 +91,8 @@ export default {
   },
   mounted () {
     var _this = this
-    this.bus.$on('on-login', function (userNickname) {
-      _this.userNickname = userNickname
+    this.bus.$on('on-login', function () {
+      _this.getNickname()
     })
     this.getNickname()
   },
@@ -102,7 +102,10 @@ export default {
         .delete('/user/status/')
         .then(successresponse => {
           if (successresponse.data.code === 200) {
-            this.userNickname = null
+            this.userNickname = ''
+            this.messages.number = null
+            this.messages.applications = []
+            this.messages.searchName = ''
             this.bus.$emit('on-logout')
             this.$alert(successresponse.data.message)
           }
@@ -148,8 +151,12 @@ export default {
         .get('/user/' + this.userNickname + '/admin-trees/application')
         .then(response => {
           if (response.data.code === 200) {
-            this.messages.applications = response.data.data
-            this.messages.number = response.data.data.length
+            if (response.data.data !== null) {
+              this.messages.applications = response.data.data
+              if (this.messages.applications.length !== 0) {
+                this.messages.number = response.data.data.length
+              }
+            }
           }
         })
         .catch()

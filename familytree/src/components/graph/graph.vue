@@ -4,7 +4,7 @@
     <div class="cssTreeUtilNavDetail">
       <el-menu :collapse='true' @select="handleSelect" style="border-right: 0px;">
         <el-menu-item index="1">
-          <i class="el-icon-refresh" @click="getTreeMainNodeData()"></i>
+          <i class="el-icon-refresh" @click="getTreeHashNodeAndLinkData()"></i>
         </el-menu-item>
         <el-menu-item index="2">
           <i class="el-icon-view" @click="changeLabel()"></i>
@@ -63,7 +63,8 @@
         <graph-util
           :myChart="this.myChart"
           :utilIndex="this.selectUtilIndex"
-          @handleGetTreeMainNodeData="getTreeMainNodeData"></graph-util>
+          @handleGetTreeHashNodeAndLinkData="getTreeHashNodeAndLinkData"
+          @handleInitializeHashNodeAndLinkData="initializeHashNodeAndLinkData"></graph-util>
       </el-card>
     </div>
   </div>
@@ -93,26 +94,28 @@ export default{
         }
       },
       // 图谱初始半径
-      radius: 2000,
+      radius: 1000,
       maxIterationNum: 2,
+      groupNumber: 1,
       // 图数据
-      graphData: {
+      hashGraphData: {
         nodes: [],
         links: []
       },
-      // 迭代使用的参数,存储中心节点位于图节点数据钟的位置
-      centerNodes: [],
       // 最短路径选择器对象
       queryShortestpathVO: {
         startPersonName: '',
         endPersonName: ''
+      },
+      utilNavClickState: {
+        load: false
       }
     }
   },
   mounted () {
     this.drawGraph()
     this.getTreeInfoData()
-    this.getTreeMainNodeData()
+    this.getTreeHashNodeAndLinkData()
   },
   methods: {
     drawGraph () {
@@ -184,8 +187,8 @@ export default{
               align: 'center'
             }
           },
-          data: this.graphData.nodes,
-          links: this.graphData.links
+          data: this.hashGraphData.nodes,
+          links: this.hashGraphData.links
         }]
       }
       this.myChart.setOption(option)
@@ -201,29 +204,40 @@ export default{
         }
       })
     },
-    getTreeMainNodeData () {
-      this.$axios
-        .get('/tree/' + this.$route.params.treeName + '/tree-main-data', {
-          params: {
-            radius: this.radius
-          }
-        })
-        .then(response => {
-          if (response.data.code === 200) {
-            this.graphData.nodes = response.data.data[0]
-            this.graphData.links = this.loadLink(response)
-            this.centerNodes = response.data.data[2]
+    getTreeHashNodeAndLinkData () {
+      if (this.utilNavClickState.load === false) {
+        this.myChart.showLoading()
+        this.utilNavClickState.load = true
+        this.$axios
+          .get('/tree/' + this.$route.params.treeName + '/hash-node-relationship-data', {
+            params: {
+              groupNum: this.groupNumber
+            }
+          })
+          .then(response => {
+            if (response.data.code === 200) {
+              this.hashGraphData.nodes = this.hashGraphData.nodes.concat(response.data.data[0])
+              this.hashGraphData.links = this.hashGraphData.links.concat(this.loadLink(response))
+              this.groupNumber += 1
+            } else {
+              this.$alert(response.data.message)
+            }
             this.myChart.setOption({
               series: [{
-                data: this.graphData.nodes,
-                links: this.graphData.links
+                data: this.hashGraphData.nodes,
+                links: this.hashGraphData.links
               }]
             })
-          } else {
-            this.$alert(response.data.message)
-          }
-        })
-        .catch(response => {})
+            this.myChart.hideLoading()
+            this.utilNavClickState.load = false
+          })
+          .catch(response => {})
+      }
+    },
+    initializeHashNodeAndLinkData () {
+      this.groupNumber = 1
+      this.hashGraphData.nodes = []
+      this.hashGraphData.links = []
     },
     getTreeInfoData () {},
     expandTree () {

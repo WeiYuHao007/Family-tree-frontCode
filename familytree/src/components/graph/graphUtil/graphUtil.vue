@@ -4,7 +4,17 @@
     <el-form :inline="true" :model="this.addingNode" class="cssTreeUtilShowDetail">
       <p>增加节点</p>
       <el-form-item>
-          <el-input v-model="addingNode.name" placeholder="姓名" max="5"></el-input>
+        <el-input v-model="addingNode.name" placeholder="姓名" max="5"></el-input>
+      </el-form-item>
+      <el-form-item>
+        <el-select v-model="addingNode.gender" placeholder="请选择性别">
+          <el-option
+            v-for="type in genderType"
+            :key="type"
+            :label="type"
+            :value="type">
+          </el-option>
+        </el-select>
       </el-form-item>
       <el-form-item>
         <el-input v-model="addingNode.birthTime" placeholder="出生日期"></el-input>
@@ -24,10 +34,17 @@
     <el-form :inline="true" :model="this.addingRelationship" class="cssTreeUtilShowDetail">
       <p>增加关系</p>
       <el-form-item>
-          <el-input v-model="addingRelationship.source" placeholder="姓名" max="5"></el-input>
+        <el-input v-model="addingRelationship.source" placeholder="姓名" max="5"></el-input>
       </el-form-item>
       <el-form-item>
-          <el-input v-model="addingRelationship.relationshipName" placeholder="关系"></el-input>
+        <el-select v-model="addingRelationship.relationshipName" placeholder="请选择关系类型">
+          <el-option
+            v-for="type in relationshipType"
+            :key="type"
+            :label="type"
+            :value="type">
+          </el-option>
+        </el-select>
       </el-form-item>
       <el-form-item>
         <el-input v-model="addingRelationship.target" placeholder="姓名" max="5"></el-input>
@@ -70,7 +87,7 @@
           <el-autocomplete
             class="inline-input"
             v-model="queryNodeName"
-            :fetch-suggestions="querySearchAsync"
+            :fetch-suggestions="querySearchAsyncNodeInfor"
             placeholder="请输入节点名称"></el-autocomplete>
         </el-form-item>
         <el-form-item>
@@ -82,6 +99,7 @@
       <div class="cssTreeUtilNodeInfoDetail" style="width: 220px;">
         <el-scrollbar style="height: 100%; width: 100%;">
           <p>姓名： {{ this.queryNodeInfo.name }}</p>
+          <p>性别： {{ this.queryNodeInfo.gender }}</p>
           <p>出生日期： {{ this.queryNodeInfo.birthTime }}</p>
           <p>死亡日期： {{ this.queryNodeInfo.deathTime }}</p>
           <p>生评：{{ this.queryNodeInfo.majorAchievements }}</p>
@@ -94,6 +112,16 @@
           class="cssTreeUtilShowDetail" style="height: 500px; width: 200px">
         <el-scrollbar style="height: 100%; width: 100%;">
           <p>{{ queryNodeInfo.name }}</p>
+          <el-form-item label="性别:" placeholder="性别:">
+            <el-select v-model="queryNodeInfo.gender" placeholder="请选择性别">
+              <el-option
+                v-for="type in genderType"
+                :key="type"
+                :label="type"
+                :value="type">
+              </el-option>
+            </el-select>
+          </el-form-item>
           <el-form-item label="出生日期:" placeholder="出生日期:">
             <el-input v-model="queryNodeInfo.birthTime"></el-input>
           </el-form-item>
@@ -256,6 +284,7 @@ export default {
     return {
       addingNode: {
         name: '',
+        gender: '',
         birthTime: '',
         deathTime: '',
         majorAchievements: ''
@@ -272,8 +301,10 @@ export default {
         source: '',
         target: ''
       },
-      queryNodeName: null,
+      queryNodeName: '',
       editState: false,
+      relationshipType: ['父亲', '母亲', '儿子', '女儿', '兄弟'],
+      genderType: ['男', '女'],
       // 本图谱拥有的所有节点
       nodesNameList: [],
       followersNicknameList: [],
@@ -287,10 +318,11 @@ export default {
       },
       timeout: null,
       queryNodeInfo: {
-        name: null,
-        birthTime: null,
-        deathTime: null,
-        majorAchievements: null,
+        name: '',
+        gender: '',
+        birthTime: '',
+        deathTime: '',
+        majorAchievements: '',
         commit: ''
       },
       queryShortestpathVO: {
@@ -306,7 +338,11 @@ export default {
       newCenterNodeName: '',
       newAdminNickname: '',
       newTreeName: '',
-      cancelFollowUserName: ''
+      cancelFollowUserName: '',
+      circleGraphData: {
+        nodes: [],
+        links: []
+      }
     }
   },
   mounted () {
@@ -329,48 +365,100 @@ export default {
             _this.queryNodeInfo = response.data.data
           }
         })
-        .catch()
+        .catch(error => {
+          console.log(error)
+        })
     })
   },
   methods: {
+    // 获取拓展圆式节点与关系数据
+    getTreeCircleNodeAndLinkData (centerNodeName) {
+      this.myChart.showLoading()
+      this.$axios
+        .get('/tree/' + this.$route.params.treeName + '/circle-node-relationship-data', {
+          params: {
+            centerNode: centerNodeName,
+            radius: 1000
+          }
+        })
+        .then(response => {
+          if (response.data.code === 200) {
+            this.circleGraphData.nodes = response.data.data[0]
+            this.circleGraphData.links = this.loadLink(response)
+            this.myChart.setOption({
+              series: [{
+                data: this.circleGraphData.nodes,
+                links: this.circleGraphData.nodes
+              }]
+            })
+          } else {
+            this.$alert(response.data.message)
+          }
+          this.myChart.hideLoading()
+        })
+        .catch(error => {
+          console.log(error)
+        })
+    },
     addNode () {
+      if (this.addingNode.name === '') {
+        this.$alert('请输入名称。')
+        return null
+      }
+      if (this.addingNode.gender === '') {
+        this.$alert('请选择性别。')
+        return null
+      }
       this.$axios
         .post('/tree/' + this.$route.params.treeName + '/node', {
           name: this.addingNode.name,
+          gender: this.addingNode.gender,
           birthTime: this.addingNode.birthTime,
           deathTime: this.addingNode.deathTime,
           majorAchievements: this.addingNode.majorAchievements
         })
         .then(response => {
           if (response.data.code === 200) {
+            this.getTreeCircleNodeAndLinkData(this.addingNode.name)
+            this.$alert(response.data.message)
             // 清空表单数据
             this.addingNode.name = ''
+            this.addingNode.gender = ''
             this.addingNode.birthTime = ''
             this.addingNode.deathTime = ''
             this.addingNode.majorAchievements = ''
             this.addingNode.commit = ''
-            this.$alert(response.data.message)
-            this.$emit('handleGetTreeMainNodeData')
-          } else {
-            this.$alert(response.data.message)
           }
+          this.$alert(response.data.message)
         })
         .catch(response => {})
     },
     deleteNode () {
+      if (this.deletingNode.name === '') {
+        this.$alert('请输入名称。')
+        return null
+      }
       this.$axios
         .delete('/tree/' + this.$route.params.treeName + '/node/' + this.deletingNode.name)
         .then(response => {
           if (response.data.code === 200) {
-            this.$alert(response.data.message)
-            this.$emit('handleGetTreeMainNodeData')
-          } else {
-            this.$alert(response.data.message)
+            this.$emit('handleInitializeHashNodeAndLinkData')
+            this.$emit('handleGetTreeHashNodeAndLinkData')
+            this.deletingNode.name = ''
           }
+          this.$alert(response.data.message)
         })
         .catch(response => {})
     },
     addRelationship () {
+      if (this.addingRelationship.source === '' || this.addingRelationship.target === '') {
+        this.$alert('请输入名称。')
+        return null
+      }
+      if (this.addingRelationship.relationshipName === '') {
+        this.$alert('请选择关系名称。')
+        return null
+      }
       this.$axios
         .post('/tree/' + this.$route.params.treeName + '/relationship', {
           source: this.addingRelationship.source,
@@ -379,15 +467,22 @@ export default {
         })
         .then(response => {
           if (response.data.code === 200) {
-            this.$alert(response.data.message)
-            this.$emit('handleGetTreeMainNodeData')
-          } else {
-            this.$alert(response.data.message)
+            this.getTreeCircleNodeAndLinkData(this.addingRelationship.source)
+            this.addingRelationship.source = ''
+            this.addingRelationship.target = ''
+            this.addingRelationship.relationshipName = ''
           }
+          this.$alert(response.data.message)
         })
-        .catch(response => {})
+        .catch(error => {
+          console.log(error)
+        })
     },
     deleteRelationship () {
+      if (this.deletingRelationship.source === '' || this.deletingRelationship.target === '') {
+        this.$alert('请输入名称。')
+        return null
+      }
       this.$axios
         .delete('/tree/' + this.$route.params.treeName + '/relationship', {
           params: {
@@ -397,15 +492,20 @@ export default {
         })
         .then(response => {
           if (response.data.code === 200) {
-            this.$alert(response.data.message)
-            this.$emit('handleGetTreeMainNodeData')
-          } else {
-            this.$alert(response.data.message)
+            this.$emit('handleInitializeHashNodeAndLinkData')
+            this.$emit('handleGetTreeHashNodeAndLinkData')
+            this.deletingRelationship.source = ''
+            this.deletingRelationship.target = ''
           }
+          this.$alert(response.data.message)
         })
         .catch(response => {})
     },
     getNodeInfo () {
+      if (this.queryNodeName === '') {
+        this.$alert('请输入查询名称。')
+        return null
+      }
       this.$axios
         .get('/tree/' + this.$route.params.treeName + '/node', {
           params: {
@@ -417,7 +517,9 @@ export default {
             this.queryNodeInfo = response.data.data
           }
         })
-        .catch()
+        .catch(error => {
+          console.log(error)
+        })
     },
     // 初始化查询信息
     initializeNodeInfo () {
@@ -489,7 +591,7 @@ export default {
         })
         .catch(response => {})
     },
-    querySearchAsync (queryString, cb) {
+    querySearchAsyncNodeInfor (queryString, cb) {
       var nodesNameListLength = this.nodesNameList.length
       var queryNodesList = []
       for (var i = 0; i < nodesNameListLength; i++) {
@@ -507,11 +609,12 @@ export default {
     },
     // 查询过滤器
     createFilter (queryString) {
-      return (nodeName) => {
-        return (nodeName.value.indexOf(queryString) === 0)
+      return (queryObject) => {
+        return (queryObject.value.indexOf(queryString) === 0)
       }
     },
     findShortestpath () {
+      this.myChart.showLoading()
       // 最短关系请求
       this.$axios
         .get('/tree/' + this.$route.params.treeName + '/node/shortestpath', {
@@ -522,7 +625,6 @@ export default {
           }})
         .then(response => {
           if (response.data.code === 200) {
-            this.myChart.hideLoading()
             var nodes = []
             var links = []
             nodes = this.loadNode(response)
@@ -533,6 +635,7 @@ export default {
                 links: links
               }]
             })
+            this.myChart.hideLoading()
           }
           if (response.data.code !== 200) {
             this.$alert(response.data.message)
